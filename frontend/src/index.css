@@ -1,0 +1,118 @@
+/* Google Fonts import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+/* Font Awesome import */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --text-color: #2D3748;
+  --grid-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --text-color: #F7FAFC;
+  --grid-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+  @apply px-4 py-3 font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition-all duration-200 flex items-center whitespace-nowrap;
+}
+
+.tab-btn:hover {
+  @apply text-gray-600 dark:text-gray-300;
+}
+
+.tab-btn.active {
+  @apply text-primary border-primary;
+}
+
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Additional dark mode styles */
+.dark .tab-content {
+  color: #F7FAFC;
+}
+
+
+/* Add to your CSS */
+.group-hover\:block {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.group:hover .group-hover\:block {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bale-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+select, input, textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.submit-btn {
+  background: #4CAF50;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background: #f44336;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
