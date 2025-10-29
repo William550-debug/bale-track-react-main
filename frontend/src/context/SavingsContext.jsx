@@ -19,7 +19,7 @@ const SavingsContextProvider = ({ children }) => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
 
-  const backendUrl = "https://biz-pulse-backend-jgbt.onrender.com";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL ;
 
   const fetchSavings = useCallback(
     async (params = {}) => {
