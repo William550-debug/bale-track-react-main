@@ -18,7 +18,14 @@ const BaleContextProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { token } = useAuth();
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL ;
+
+  // Separate purchases and sales from bales - ADD THIS
+  const { purchases, sales } = useMemo(() => {
+    const purchases = bales.filter(bale => bale.transactionType === 'purchase');
+    const sales = bales.filter(bale => bale.transactionType === 'sale');
+    return { purchases, sales };
+  }, [bales]);
 
   const fetchBales = useCallback(async () => {
     if (!token) return;
@@ -139,8 +146,8 @@ const BaleContextProvider = ({ children }) => {
       totalPurchases: 0,
       totalSales: 0,
       totalRevenue: 0,
-      purchaseCount: 0,
-      saleCount: 0,
+      purchaseCount: purchases.length, // Use the separated purchases
+      saleCount: sales.length, // Use the separated sales
       totalQuantityPurchased: 0,
       totalQuantitySold: 0,
     };
@@ -150,11 +157,9 @@ const BaleContextProvider = ({ children }) => {
 
       if (bale.transactionType === "purchase") {
         stats.totalPurchases += totalAmount;
-        stats.purchaseCount += 1;
         stats.totalQuantityPurchased += bale.quantity;
       } else if (bale.transactionType === "sale") {
         stats.totalSales += totalAmount;
-        stats.saleCount += 1;
         stats.totalQuantitySold += bale.quantity;
       }
     });
@@ -172,7 +177,7 @@ const BaleContextProvider = ({ children }) => {
       stats.totalSales > 0 ? (stats.totalRevenue / stats.totalSales) * 100 : 0;
 
     return stats;
-  }, [bales]);
+  }, [bales, purchases.length, sales.length]);
 
   // Fetch initial data when token changes
   useEffect(() => {
@@ -184,8 +189,10 @@ const BaleContextProvider = ({ children }) => {
   const contextValue = useMemo(
     () => ({
       bales,
-      balesStats: balesStats || localBalesStats, // Use server stats if available, fallback to local
-      localBalesStats, // Always available real-time stats
+      purchases, // ADD THIS - separated purchases
+      sales, // ADD THIS - separated sales
+      balesStats: balesStats || localBalesStats,
+      localBalesStats,
       isLoading,
       isStatsLoading,
       error,
@@ -197,6 +204,8 @@ const BaleContextProvider = ({ children }) => {
     }),
     [
       bales,
+      purchases, // ADD THIS
+      sales, // ADD THIS
       balesStats,
       localBalesStats,
       isLoading,
@@ -215,4 +224,4 @@ const BaleContextProvider = ({ children }) => {
   );
 };
 
-export default  BaleContextProvider;
+export default BaleContextProvider;

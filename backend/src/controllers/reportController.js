@@ -17,7 +17,7 @@ const isValidFormat = (format) => {
 export const exportFinancialReports = async (req, res) => {
   try {
     const { user } = req;
-    const { format = "pdf", period = "monthly" } = req.query;
+    const { format = "pdf" , period = "monthly" } = req.query;
 
     // Validate format
     if (!["pdf", "excel"].includes(format)) {

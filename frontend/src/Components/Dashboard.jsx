@@ -8,142 +8,95 @@ import LoginPopUp from "./Login";
 import { AuthContext } from "../context/AuthContext.jsx";
 
 import Profile from "./Profile.jsx";
+import { BaleContext } from "../context/BaleContext.jsx";
+
+import { ExpenseContext } from "../context/ExpenseContext.jsx";
+import { useFinancialMetrics } from "../hooks/userFinancialMetrics.js";
+import ExpenseComponent from "./ExpenseComponent.jsx";
+import BalesChart from "./BalesChart.jsx";
+
 const Dashboard = () => {
-  const balesChartRef = useRef(null);
-  const expensesChartRef = useRef(null);
   const { theme } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const { user, isAuthenticated } = useContext(AuthContext);
 
+  const { financialMetrics, isLoading, error, hasData } = useFinancialMetrics();
+
+  const {
+    balesStats,
+    localBalesStats,
+    isStatsLoading: isBalesLoading,
+  } = useContext(BaleContext);
+
+  const {
+    expenseStats,
+    localExpenseStats,
+    isStatsLoading: isExpensesLoading,
+    fetchExpenseStats,
+  } = useContext(ExpenseContext);
+
+  // Format currency helper (consistent with Reports)
+  const formatCurrency = (amount, showColor = false) => {
+    if (isLoading) return "Loading...";
+
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
+    const formatted = formatter.format(Math.abs(amount));
+
+    if (showColor) {
+      return amount >= 0 ? formatted : `-${formatted}`;
+    }
+
+    return formatted;
+  };
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
   const handleProfileClick = () => {
     setShowProfile(!showProfile);
   };
 
-  useEffect(() => {
-    const balesCanvas = balesChartRef.current;
-    const expensesCanvas = expensesChartRef.current;
+  // Use local stats as fallback if server stats are not available
+  const currentBalesStats = balesStats || localBalesStats;
+  const currentExpenseStats = expenseStats || localExpenseStats;
 
-    if (balesCanvas && expensesCanvas) {
-      const balesCtx = balesCanvas.getContext("2d");
-      const expensesCtx = expensesCanvas.getContext("2d");
+  const calculateFinance = () => {
+    return {
+      // Bales metrics
+      totalBalesSales: currentBalesStats?.totalSales || 0,
+      totalBalesPurchases: currentBalesStats?.totalPurchases || 0,
+      balesRevenue: currentBalesStats?.totalRevenue || 0,
 
-      // Get theme-aware colors
-      const isDarkMode = theme === "dark";
-      const textColor = isDarkMode ? "#F3F4F6" : "#2D3748";
-      const gridColor = isDarkMode
-        ? "rgba(255, 255, 255, 0.1)"
-        : "rgba(0, 0, 0, 0.1)";
-      const tooltipBgColor = isDarkMode ? "#1F2937" : "#FFFFFF";
-      const tooltipTextColor = isDarkMode ? "#F3F4F6" : "#2D3748";
+      // Pure expenses
+      pureExpenses: currentExpenseStats?.totalExpenses || 0,
 
-      if (balesCanvas.chart) balesCanvas.chart.destroy();
-      if (expensesCanvas.chart) expensesCanvas.chart.destroy();
+      // Combined calculations
+      get totalCosts() {
+        return this.totalBalesPurchases + this.pureExpenses;
+      },
 
-      // Bales Chart
-      balesCanvas.chart = new Chart(balesCtx, {
-        type: "bar",
-        data: {
-          labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-          datasets: [
-            {
-              label: "Bales Bought",
-              data: [45, 32, 28, 51, 42, 19, 35],
-              backgroundColor: "#5D5FEF",
-              borderColor: "#5D5FEF",
-              borderWidth: 1,
-            },
-            {
-              label: "Bales Sold",
-              data: [38, 29, 25, 47, 39, 15, 30],
-              backgroundColor: "#4FD1C5",
-              borderColor: "#4FD1C5",
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: gridColor,
-                drawBorder: false,
-              },
-              ticks: {
-                color: textColor,
-              },
-            },
-            x: {
-              grid: {
-                display: false,
-              },
-              ticks: {
-                color: textColor,
-              },
-            },
-          },
-          plugins: {
-            legend: {
-              labels: {
-                color: textColor,
-              },
-            },
-            tooltip: {
-              backgroundColor: tooltipBgColor,
-              titleColor: tooltipTextColor,
-              bodyColor: tooltipTextColor,
-              borderColor: isDarkMode ? "#4B5563" : "#E5E7EB",
-              borderWidth: 1,
-            },
-          },
-        },
-      });
+      get actualProfit() {
+        return this.totalBalesSales - this.totalCosts;
+      },
 
-      // Expenses Chart
-      expensesCanvas.chart = new Chart(expensesCtx, {
-        type: "doughnut",
-        data: {
-          labels: ["Transport", "Utilities", "Salaries", "Other"],
-          datasets: [
-            {
-              data: [25, 20, 30, 25],
-              backgroundColor: ["#5D5FEF", "#4FD1C5", "#ED8936", "#A0AEC0"],
-              borderWidth: isDarkMode ? 1 : 0,
-              borderColor: isDarkMode ? "#1F2937" : "transparent",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "right",
-              labels: {
-                color: textColor,
-              },
-            },
-            tooltip: {
-              backgroundColor: tooltipBgColor,
-              titleColor: tooltipTextColor,
-              bodyColor: tooltipTextColor,
-              borderColor: isDarkMode ? "#4B5563" : "#E5E7EB",
-              borderWidth: 1,
-            },
-          },
-          cutout: "70%",
-        },
-      });
-    }
+      get profitMargin() {
+        return this.totalBalesSales > 0
+          ? (this.actualProfit / this.totalBalesSales) * 100
+          : 0;
+      },
 
-    return () => {
-      if (balesCanvas?.chart) balesCanvas.chart.destroy();
-      if (expensesCanvas?.chart) expensesCanvas.chart.destroy();
+      get theExpenseRatio() {
+        return this.totalBalesSales > 0
+          ? (this.totalCosts / this.totalBalesSales) * 100
+          : 0;
+      },
     };
-  }, [theme]); // Recreate charts when theme changes
+  };
 
   return (
     <>
@@ -277,65 +230,126 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 ml-6 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 mr-6">
         <StatCard
-          title="Today's Profit"
-          value="Ksh 245,800"
-          trend="↑ 12% from yesterday"
-          trendColor="success"
+          title="Net profit / loss"
+          value={
+            calculateFinance().actualProfit >= 0
+              ? formatCurrency(calculateFinance().actualProfit)
+              : `-${formatCurrency(calculateFinance().actualProfit, true)}`
+          }
+          trend={
+            calculateFinance().profitMargin >= 0
+              ? "↑ Positive trend"
+              : "↓ Needs improvement"
+          }
+          trendColor={
+            calculateFinance().profitMargin >= 0
+              ? "green-100 dark:bg-green-900"
+              : "red-100 dark:bg-red-900"
+          }
           icon="💰"
-          iconBg="blue-100 dark:bg-blue-900"
-          iconColor="primary dark:text-blue-300"
+          iconBg={
+            calculateFinance().actualProfit >= 0
+              ? "green-100 dark:bg-green-900"
+              : "red-100 dark:bg-red-900"
+          }
+          iconColor={
+            calculateFinance().actualProfit >= 0
+              ? "green-600 dark:text-green-300"
+              : "red-600 dark:text-red-300"
+          }
+          subtitle={`Margin: ${financialMetrics.profitMargin.toFixed(1)}%`}
+          isLoading={isLoading}
         />
+
+        {/* Warehouse Stock Card */}
         <StatCard
           title="Warehouse Stock"
-          value="142 bales"
-          trend="↓ 5% from last week"
-          trendColor="danger"
+          value={
+            isLoading
+              ? "Loading..."
+              : `${financialMetrics.warehouseStock} Bales`
+          }
+          trend={financialMetrics.stockTrend}
+          trendColor={financialMetrics.stockTrendColor}
           icon="🧶"
-          iconBg="teal-100 dark:bg-teal-900"
-          iconColor="secondary dark:text-teal-300"
+          iconBg={
+            financialMetrics.warehouseStock > 50
+              ? "green-100 dark:bg-green-900"
+              : financialMetrics.warehouseStock > 20
+              ? "yellow-100 dark:bg-yellow-900"
+              : "red-100 dark:bg-red-900"
+          }
+          iconColor={
+            financialMetrics.warehouseStock > 50
+              ? "green-600 dark:text-green-300"
+              : financialMetrics.warehouseStock > 20
+              ? "yellow-600 dark:text-yellow-300"
+              : "red-600 dark:text-red-300"
+          }
+          subtitle={`${financialMetrics.purchasesCount} purchases`}
+          isLoading={isLoading}
         />
+
+        {/* Monthly Expenses Card */}
         <StatCard
           title="Monthly Expenses"
-          value="Ksh 178,500"
-          trend="↑ 8% from last month"
-          trendColor="success"
+          value={formatCurrency(financialMetrics.pureExpenses)}
+          trend={financialMetrics.expensesTrend}
+          trendColor={financialMetrics.expensesTrendColor}
           icon="💸"
-          iconBg="orange-100 dark:bg-orange-900"
-          iconColor="warning dark:text-orange-300"
+          iconBg={
+            financialMetrics.pureExpenses > 10000
+              ? "red-100 dark:bg-red-900"
+              : financialMetrics.pureExpenses > 5000
+              ? "yellow-100 dark:bg-yellow-900"
+              : "green-100 dark:bg-green-900"
+          }
+          iconColor={
+            financialMetrics.pureExpenses > 10000
+              ? "red-600 dark:text-red-300"
+              : financialMetrics.pureExpenses > 5000
+              ? "yellow-600 dark:text-yellow-300"
+              : "green-600 dark:text-green-300"
+          }
+          subtitle={`${
+            financialMetrics.currentExpenseStats?.count || 0
+          } expense entries`}
+          isLoading={isLoading}
         />
+
+        {/* Total Savings Card */}
         <StatCard
           title="Total Savings"
-          value="Ksh 1,245,300"
-          trend="↑ 23% towards goals"
-          trendColor="success"
+          value={formatCurrency(financialMetrics.totalSavings)}
+          trend={financialMetrics.savingsTrend}
+          trendColor={financialMetrics.savingsTrendColor}
           icon="🏦"
-          iconBg="red-100 dark:bg-red-900"
-          iconColor="danger dark:text-red-300"
+          iconBg={
+            financialMetrics.totalSavings > 50000
+              ? "green-100 dark:bg-green-900"
+              : financialMetrics.totalSavings > 20000
+              ? "yellow-100 dark:bg-yellow-900"
+              : "red-100 dark:bg-red-900"
+          }
+          iconColor={
+            financialMetrics.totalSavings > 50000
+              ? "green-600 dark:text-green-300"
+              : financialMetrics.totalSavings > 20000
+              ? "yellow-600 dark:text-yellow-300"
+              : "red-600 dark:text-red-300"
+          }
+          subtitle="Total accumulated savings"
+          isLoading={isLoading}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 ml-6 mr-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6 lg:col-span-2">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-sm md:text-base text-dark dark:text-white">
-              Bales Bought vs Sold (Last 7 Days)
-            </h2>
-          </div>
-          <div className="h-48 md:h-64">
-            <canvas ref={balesChartRef} />
-          </div>
+        <div className="lg:col-span-2">
+          <BalesChart />
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-sm md:text-base text-dark dark:text-white">
-              Saving Goals
-            </h2>
-          </div>
-          <div className="space-y-4">
-            <SavingsGoal />
-            
-          </div>
+          <SavingsGoal />
         </div>
       </div>
 
@@ -350,14 +364,7 @@ const Dashboard = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-sm md:text-base text-dark dark:text-white">
-              Expense Breakdown
-            </h2>
-          </div>
-          <div className="h-48 md:h-64">
-            <canvas ref={expensesChartRef} />
-          </div>
+          <ExpenseComponent />
         </div>
       </div>
     </>

@@ -20,7 +20,7 @@ const ReportsContextProvider = ({ children }) => {
   const [exportError, setExportError] = useState(null);
   const { token } = useAuth();
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL ;
 
   // Fetch financial data for reports
   const fetchFinancialData = useCallback(
@@ -126,6 +126,9 @@ const ReportsContextProvider = ({ children }) => {
     },
     [token, backendUrl]
   );
+
+
+  
 
   // Clear errors
   const clearError = useCallback(() => {

@@ -18,7 +18,7 @@ const ExpenseContextProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { token } = useAuth();
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL ;
 
   const fetchExpenses = useCallback(async () => {
     if (!token) return;

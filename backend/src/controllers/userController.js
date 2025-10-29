@@ -12,8 +12,6 @@ const createToken = (id) => {
 
 // Register
 const registerUser = async (req, res) => {
-
-
   const { name, email, password } = req.body;
 
   // Validate input
@@ -43,12 +41,17 @@ const registerUser = async (req, res) => {
     // Create token
     const token = createToken(user._id);
 
-    res.status(201).json({ user: { id: user._id, name: user.name, email: user.email }, token });
+    res
+      .status(201)
+      .json({
+        success:true,
+        user: { id: user._id, name: user.name, email: user.email },
+        token,
+      });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 // Login
 const loginUser = async (req, res) => {
@@ -75,17 +78,21 @@ const loginUser = async (req, res) => {
     // Create token
     const token = createToken(user._id);
 
-    res.status(200).json({ user: { id: user._id, name: user.name, email: user.email }, token });
+    res
+      .status(200)
+      .json({
+        user: { id: user._id, name: user.name, email: user.email },
+        token,
+      });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
-};  
+};
 
 // Logout
 const logoutUser = (req, res) => {
   // Invalidate the token on the client side
   res.status(200).json({ message: "User logged out successfully" });
 };
-
 
 export { registerUser, loginUser, logoutUser };
