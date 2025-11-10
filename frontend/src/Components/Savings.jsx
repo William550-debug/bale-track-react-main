@@ -7,7 +7,13 @@ import { toast } from "react-toastify";
 import { useAuth } from "../context/useAuth.js";
 import { useNavigate } from "react-router-dom";
 import { DocumentTextIcon } from "@heroicons/react/outline";
-import { Menu, Transition } from "@headlessui/react";
+import {
+  Menu,
+  MenuButton,
+  MenuItems,
+  MenuItem,
+  Transition,
+} from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
 
 const Savings = () => {
@@ -21,7 +27,7 @@ const Savings = () => {
     savingsStats,
     createSaving,
     fetchSavingsStats,
-    handleNewGoal
+    handleNewGoal,
   } = useContext(SavingsContext);
 
   const navigate = useNavigate();
@@ -121,10 +127,6 @@ const Savings = () => {
     };
   }, [savings]);
 
- 
-
- 
-
   // Savings.jsx
   const handleExport = async (format = "pdf") => {
     try {
@@ -180,17 +182,33 @@ const Savings = () => {
   return (
     <div className="container mx-auto px-0 md:px-4 py-4 md:py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-dark dark:text-white">
+        <div className="px-5 ml-10">
+          <h1 className="text-xl md:text-2xl font-bold text-dark dark:text-white">
           Savings Overview
         </h1>
-        <Menu as="div" className="relative inline-block text-left">
+        </div>
+        <Menu as="div" className="relative inline-block text-left md:flex">
           <div>
-            <Menu.Button className="inline-flex justify-center items-center text-primary text-sm hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-md">
+            <MenuButton className="inline-flex justify-center items-center text-primary text-sm hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-md">
               <DocumentDownloadIcon className="w-4 h-4 mr-1" />
               Export Report
               <ChevronDownIcon className="w-4 h-4 ml-1" aria-hidden="true" />
-            </Menu.Button>
+            </MenuButton>
           </div>
+          {/*
+            <div className="container mx-auto px-0 md:px-4 py-4 md:py-8 max-w-4xl">
+      <div className="text-center mb-6 md:flex">
+        <div className="p-8">
+          <h1 className="mt-1 block text0lg leading-tight font-medium  text-dark dark:text-white ">
+          Daily Data Entry
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          Record your daily bale transactions, expenses, and savings
+        </p>
+        </div>
+        
+      </div>
+            */}
 
           <Transition
             enter="transition ease-out duration-100"
@@ -200,9 +218,9 @@ const Savings = () => {
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+            <MenuItems className="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
               <div className="py-1">
-                <Menu.Item>
+                <MenuItem>
                   {({ active }) => (
                     <button
                       onClick={() => handleExport("pdf")}
@@ -213,8 +231,8 @@ const Savings = () => {
                       Export as PDF
                     </button>
                   )}
-                </Menu.Item>
-                <Menu.Item>
+                </MenuItem>
+                <MenuItem>
                   {({ active }) => (
                     <button
                       onClick={() => handleExport("excel")}
@@ -225,9 +243,9 @@ const Savings = () => {
                       Export as Excel
                     </button>
                   )}
-                </Menu.Item>
+                </MenuItem>
               </div>
-            </Menu.Items>
+            </MenuItems>
           </Transition>
         </Menu>
       </div>

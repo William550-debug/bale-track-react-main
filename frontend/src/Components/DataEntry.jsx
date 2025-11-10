@@ -196,13 +196,16 @@ const DataEntry = () => {
 
   return (
     <div className="container mx-auto px-0 md:px-4 py-4 md:py-8 max-w-4xl">
-      <div className="text-center mb-6 md:mb-8">
-        <h1 className="text-xl md:text-3xl font-semibold text-dark dark:text-white mb-2">
+      <div className="text-center mb-6 md:flex">
+        <div className="p-8">
+          <h1 className="mt-1 block text0lg leading-tight font-medium  text-dark dark:text-white ">
           Daily Data Entry
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
           Record your daily bale transactions, expenses, and savings
         </p>
+        </div>
+        
       </div>
 
       <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 mb-4 md:mb-6">
@@ -350,30 +353,30 @@ const DataEntry = () => {
                     className="p-4 rounded-lg shadow bg-white dark:bg-gray-900"
                   >
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-gray-900 dark:text-white">
                         Type:
                       </span>
-                      <span className="text-gray-900 dark:text-white capitalize">
+                      <span className="text-gray-900 dark:text-white capitalize ">
                         {bale.baleType}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-gray-900 dark:text-white capitalize">
                         Transaction:
                       </span>
-                      <span className="capitalize">{bale.transactionType}</span>
+                      <span className="capitalize text-gray-900 dark:text-white">{bale.transactionType}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-gray-500 dark:text-white">
                         Quantity:
                       </span>
-                      <span>{bale.quantity}</span>
+                      <span className="text-gray-900 dark:text-white">{bale.quantity}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-gray-500 dark:text-white">
                         Price/Unit:
                       </span>
-                      <span>Ksh {bale.pricePerUnit?.toFixed(2)}</span>
+                      <span className="text-gray-900 dark:text-white">Ksh {bale.pricePerUnit?.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-end space-x-3 mt-3">
                       <button
