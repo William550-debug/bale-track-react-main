@@ -1,4 +1,4 @@
-import moongoose from "mongoose";
+import mongoose from "mongoose";
 
 // Logic for submitting complaints
 /* --- Complaint parameters --- */
@@ -17,7 +17,7 @@ import moongoose from "mongoose";
 //  contactPreference [phone, email,]
 // , urgency [low, medium, high, critical]
 
-const complaintSchema = new moongoose.Schema(
+const complaintSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true },
@@ -52,4 +52,4 @@ const complaintSchema = new moongoose.Schema(
   { timestamps: true }
 );
 
-export const Complaint = moongoose.model("Complaint", complaintSchema);
+export const Complaint = mongoose.model("Complaint", complaintSchema);

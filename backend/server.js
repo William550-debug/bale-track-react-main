@@ -7,6 +7,7 @@ import baleRouter from './src/routes/baleRoutes.js'
 import expenseRouter from './src/routes/expenseRoutes.js'
 import savingRouter from './src/routes/savingRoute.js'
 import reportRouter from './src/routes/reportRoutes.js'
+import feedbackRouter from './src/routes/userFeedbackRoutes.js'
 
 
 //app config
@@ -34,7 +35,7 @@ app.use("/api/bales", baleRouter)
 app.use("/api/expenses", expenseRouter)
 app.use("/api/savings", savingRouter)
 app.use("/api/reports", reportRouter)
-
+app.use("/api/feedback", feedbackRouter);
 
 
 

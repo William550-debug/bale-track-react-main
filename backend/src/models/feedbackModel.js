@@ -1,4 +1,4 @@
-import moongoose from 'mongoose';
+import mongoose from 'mongoose';
 
     // Logic for submitting feedback  or complaints
     /* --- Feedback parameters --- */
@@ -6,7 +6,7 @@ import moongoose from 'mongoose';
     //  company,[optional]
     // rating[0-5]
 
-const feedbackSchema = new moongoose.Schema(
+const feedbackSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true },
@@ -22,4 +22,4 @@ const feedbackSchema = new moongoose.Schema(
   { timestamps: true }
 );
 
-export const Feedback = moongoose.model("Feedback", feedbackSchema);
+export const Feedback = mongoose.model("Feedback", feedbackSchema);
