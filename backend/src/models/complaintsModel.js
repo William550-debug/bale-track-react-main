@@ -37,7 +37,6 @@ const complaintSchema = new mongoose.Schema(
     subject: { type: String, required: true },
     description: { type: String, required: true },
     desiredResolution: { type: String },
-    attachments: [{ type: String }], // Array of file/media URLs or paths
     contactPreference: {
       type: String,
       enum: ["phone", "email"],

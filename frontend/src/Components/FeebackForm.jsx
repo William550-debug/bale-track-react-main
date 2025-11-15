@@ -1,9 +1,16 @@
 import React, { useState } from "react";
 import { useTheme } from "../context/ThemeProvider";
+import axios from "axios";
 
 export default function FeedbackForm() {
-  const [activeTab, setActiveTab] = useState('feedback');
+  const [activeTab, setActiveTab] = useState("feedback");
   const { theme } = useTheme();
+
+  // API URLs
+  const feedbackURL =
+    import.meta.env.VITE_BACKEND_URL + "/feedback/submit-feedback";
+  const complaintURL =
+    import.meta.env.VITE_BACKEND_URL + "/feedback/submit-complaint";
 
   // Feedback Form State
   const [feedbackData, setFeedbackData] = useState({
@@ -16,23 +23,24 @@ export default function FeedbackForm() {
   const [hover, setHover] = useState(0);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackError, setFeedbackError] = useState("");
 
+  // Complaint Form State
   // Complaint Form State
   const [complaintData, setComplaintData] = useState({
     name: "",
     email: "",
     company: "",
-    orderNumber: "",
     complaintType: "",
     subject: "",
     description: "",
     desiredResolution: "",
-    attachments: [],
     contactPreference: "email",
-    urgency: "medium"
+    urgency: "medium",
   });
   const [isSubmittingComplaint, setIsSubmittingComplaint] = useState(false);
   const [complaintSubmitted, setComplaintSubmitted] = useState(false);
+  const [complaintError, setComplaintError] = useState("");
 
   const complaintTypes = [
     "Product Quality Issue",
@@ -42,20 +50,122 @@ export default function FeedbackForm() {
     "Website/Technical Problem",
     "Return/Refund Request",
     "Product Not as Described",
-    "Other"
+    "Other",
   ];
 
   const urgencyLevels = [
     { value: "low", label: "Low", description: "General inquiry" },
-    { value: "medium", label: "Medium", description: "Need resolution within 48 hours" },
-    { value: "high", label: "High", description: "Urgent - need resolution within 24 hours" },
-    { value: "critical", label: "Critical", description: "Immediate attention required" }
+    {
+      value: "medium",
+      label: "Medium",
+      description: "Need resolution within 48 hours",
+    },
+    {
+      value: "high",
+      label: "High",
+      description: "Urgent - need resolution within 24 hours",
+    },
+    {
+      value: "critical",
+      label: "Critical",
+      description: "Immediate attention required",
+    },
   ];
+
+  // API Functions
+  const sendFeedback = async (feedbackData, rating) => {
+    try {
+      const payload = {
+        name: feedbackData.name,
+        email: feedbackData.email,
+        message: feedbackData.message,
+        company: feedbackData.company,
+        rating: rating,
+      };
+
+      console.log("Sending feedback:", payload);
+
+      const response = await axios.post(feedbackURL, payload, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        console.log("Feedback submitted successfully:", response.data);
+        return { success: true, data: response.data };
+      } else {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+
+      if (error.response) {
+        throw new Error(
+          `Server error: ${
+            error.response.data.message || error.response.status
+          }`
+        );
+      } else if (error.request) {
+        throw new Error("Network error: Unable to reach the server");
+      } else {
+        throw new Error(`Error: ${error.message}`);
+      }
+    }
+  };
+
+  const sendComplaint = async (complaintData) => {
+    try {
+      // Create JSON payload instead of FormData
+      const payload = {
+        name: complaintData.name,
+        email: complaintData.email,
+        company: complaintData.company,
+        complaintType: complaintData.complaintType,
+        subject: complaintData.subject,
+        description: complaintData.description,
+        desiredResolution: complaintData.desiredResolution,
+        contactPreference: complaintData.contactPreference,
+        urgency: complaintData.urgency,
+      };
+
+      console.log("Sending complaint:", payload);
+
+      const response = await axios.post(complaintURL, payload, {
+        headers: {
+          "Content-Type": "application/json", // Change to JSON
+        },
+        timeout: 30000,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        console.log("Complaint submitted successfully:", response.data);
+        return { success: true, data: response.data };
+      } else {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error submitting complaint:", error);
+
+      if (error.response) {
+        throw new Error(
+          `Server error: ${
+            error.response.data.message || error.response.status
+          }`
+        );
+      } else if (error.request) {
+        throw new Error("Network error: Unable to reach the server");
+      } else {
+        throw new Error(`Error: ${error.message}`);
+      }
+    }
+  };
 
   // Feedback Handlers
   const handleFeedbackChange = (e) => {
     const { name, value } = e.target;
-    setFeedbackData(prev => ({ ...prev, [name]: value }));
+    setFeedbackData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRatingChange = (ratingValue) => {
@@ -64,15 +174,31 @@ export default function FeedbackForm() {
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
+    setFeedbackError("");
     setIsSubmittingFeedback(true);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Feedback submitted:", { ...feedbackData, rating });
-      setFeedbackSubmitted(true);
-      resetFeedbackForm();
+      if (
+        !feedbackData.name ||
+        !feedbackData.email ||
+        !feedbackData.message ||
+        rating === 0
+      ) {
+        throw new Error(
+          "Please fill in all required fields and provide a rating"
+        );
+      }
+
+      const result = await sendFeedback(feedbackData, rating);
+
+      if (result.success) {
+        console.log("Feedback submitted successfully:", result.data);
+        setFeedbackSubmitted(true);
+        resetFeedbackForm();
+      }
     } catch (error) {
       console.error("Submission error:", error);
+      setFeedbackError(error.message);
     } finally {
       setIsSubmittingFeedback(false);
     }
@@ -92,25 +218,40 @@ export default function FeedbackForm() {
   // Complaint Handlers
   const handleComplaintChange = (e) => {
     const { name, value, type, files } = e.target;
-    
-    if (type === 'file') {
-      setComplaintData(prev => ({ ...prev, attachments: Array.from(files) }));
+
+    if (type === "file") {
+      setComplaintData((prev) => ({ ...prev, attachments: Array.from(files) }));
     } else {
-      setComplaintData(prev => ({ ...prev, [name]: value }));
+      setComplaintData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleComplaintSubmit = async (e) => {
     e.preventDefault();
+    setComplaintError("");
     setIsSubmittingComplaint(true);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Complaint submitted:", complaintData);
-      setComplaintSubmitted(true);
-      resetComplaintForm();
+      if (
+        !complaintData.name ||
+        !complaintData.email ||
+        !complaintData.complaintType ||
+        !complaintData.subject ||
+        !complaintData.description
+      ) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      const result = await sendComplaint(complaintData);
+
+      if (result.success) {
+        console.log("Complaint submitted successfully:", result.data);
+        setComplaintSubmitted(true);
+        resetComplaintForm();
+      }
     } catch (error) {
       console.error("Submission error:", error);
+      setComplaintError(error.message);
     } finally {
       setIsSubmittingComplaint(false);
     }
@@ -121,14 +262,13 @@ export default function FeedbackForm() {
       name: "",
       email: "",
       company: "",
-      orderNumber: "",
       complaintType: "",
       subject: "",
       description: "",
       desiredResolution: "",
       attachments: [],
       contactPreference: "email",
-      urgency: "medium"
+      urgency: "medium",
     });
   };
 
@@ -152,9 +292,11 @@ export default function FeedbackForm() {
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 className={`w-8 h-8 transition-all duration-300 ${
-                  ratingValue <= (hover || value) 
-                    ? "text-yellow-400 drop-shadow-lg" 
-                    : theme === 'dark' ? "text-gray-600" : "text-gray-300"
+                  ratingValue <= (hover || value)
+                    ? "text-yellow-400 drop-shadow-lg"
+                    : theme === "dark"
+                    ? "text-gray-600"
+                    : "text-gray-300"
                 }`}
               >
                 <path
@@ -166,10 +308,12 @@ export default function FeedbackForm() {
             </button>
           );
         })}
-        <span className={`ml-2 text-sm font-medium ${
-          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-        }`}>
-          {value ? `${value} star${value !== 1 ? 's' : ''}` : "Click to rate"}
+        <span
+          className={`ml-2 text-sm font-medium ${
+            theme === "dark" ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
+          {value ? `${value} star${value !== 1 ? "s" : ""}` : "Click to rate"}
         </span>
       </div>
     );
@@ -177,87 +321,130 @@ export default function FeedbackForm() {
 
   // Input field classes for consistent styling
   const inputClasses = `w-full px-4 py-3 border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-opacity-50 focus:border-transparent ${
-    theme === 'dark' 
-      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400' 
-      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500'
+    theme === "dark"
+      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400"
+      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500"
   }`;
 
   const buttonClasses = {
     primary: `px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-      theme === 'dark' ? 'focus:ring-offset-gray-800' : 'focus:ring-offset-white'
+      theme === "dark"
+        ? "focus:ring-offset-gray-800"
+        : "focus:ring-offset-white"
     }`,
     secondary: `px-6 py-3 border rounded-lg font-medium transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-      theme === 'dark' 
-        ? 'border-gray-600 text-gray-300 hover:bg-gray-700 focus:ring-gray-500 focus:ring-offset-gray-800' 
-        : 'border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-400 focus:ring-offset-white'
-    }`
+      theme === "dark"
+        ? "border-gray-600 text-gray-300 hover:bg-gray-700 focus:ring-gray-500 focus:ring-offset-gray-800"
+        : "border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-400 focus:ring-offset-white"
+    }`,
   };
 
   return (
-    <div className={`min-h-screen py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-gray-100'
-    }`}>
+    <div
+      className={`min-h-screen py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-gray-900 to-gray-800"
+          : "bg-gradient-to-br from-blue-50 to-gray-100"
+      }`}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4 dark:bg-blue-900/20">
-            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            <svg
+              className="w-8 h-8 text-blue-600 dark:text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+              />
             </svg>
           </div>
-          <h1 className={`text-4xl font-bold mb-3 bg-gradient-to-r bg-clip-text text-transparent ${
-            theme === 'dark' 
-              ? 'from-blue-400 to-purple-400' 
-              : 'from-blue-600 to-purple-600'
-          }`}>
+          <h1
+            className={`text-4xl font-bold mb-3 bg-gradient-to-r bg-clip-text text-transparent ${
+              theme === "dark"
+                ? "from-blue-400 to-purple-400"
+                : "from-blue-600 to-purple-600"
+            }`}
+          >
             Customer Feedback System
           </h1>
-          <p className={`text-lg max-w-2xl mx-auto ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            Your voice matters. Help us improve by sharing your experience or reporting issues.
+          <p
+            className={`text-lg max-w-2xl mx-auto ${
+              theme === "dark" ? "text-gray-300" : "text-gray-600"
+            }`}
+          >
+            Your voice matters. Help us improve by sharing your experience or
+            reporting issues.
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className={`flex rounded-xl p-1 mb-8 ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white shadow-sm'
-        }`}>
+        <div
+          className={`flex rounded-xl p-1 mb-8 ${
+            theme === "dark" ? "bg-gray-800" : "bg-white shadow-sm"
+          }`}
+        >
           <button
-            onClick={() => setActiveTab('feedback')}
+            onClick={() => setActiveTab("feedback")}
             className={`flex-1 py-4 px-6 rounded-lg text-center font-semibold transition-all duration-300 ${
-              activeTab === 'feedback'
-                ? theme === 'dark'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-blue-500 text-white shadow-md'
-                : theme === 'dark'
-                ? 'text-gray-300 hover:text-white hover:bg-gray-700'
-                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+              activeTab === "feedback"
+                ? theme === "dark"
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "bg-blue-500 text-white shadow-md"
+                : theme === "dark"
+                ? "text-gray-300 hover:text-white hover:bg-gray-700"
+                : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
             }`}
           >
             <div className="flex items-center justify-center space-x-3">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span>Share Feedback</span>
             </div>
           </button>
-          
+
           <button
-            onClick={() => setActiveTab('complaint')}
+            onClick={() => setActiveTab("complaint")}
             className={`flex-1 py-4 px-6 rounded-lg text-center font-semibold transition-all duration-300 ${
-              activeTab === 'complaint'
-                ? theme === 'dark'
-                  ? 'bg-red-600 text-white shadow-lg'
-                  : 'bg-red-500 text-white shadow-md'
-                : theme === 'dark'
-                ? 'text-gray-300 hover:text-white hover:bg-gray-700'
-                : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+              activeTab === "complaint"
+                ? theme === "dark"
+                  ? "bg-red-600 text-white shadow-lg"
+                  : "bg-red-500 text-white shadow-md"
+                : theme === "dark"
+                ? "text-gray-300 hover:text-white hover:bg-gray-700"
+                : "text-gray-600 hover:text-red-600 hover:bg-red-50"
             }`}
           >
             <div className="flex items-center justify-center space-x-3">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               <span>File Complaint</span>
             </div>
@@ -265,36 +452,55 @@ export default function FeedbackForm() {
         </div>
 
         {/* Content Area */}
-        <div className={`rounded-2xl shadow-xl transition-all duration-300 ${
-          theme === 'dark' 
-            ? 'bg-gray-800 border border-gray-700' 
-            : 'bg-white border border-gray-100'
-        }`}>
+        <div
+          className={`rounded-2xl shadow-xl transition-all duration-300 ${
+            theme === "dark"
+              ? "bg-gray-800 border border-gray-700"
+              : "bg-white border border-gray-100"
+          }`}
+        >
           <div className="p-8">
             {/* Feedback Form */}
-            {activeTab === 'feedback' && (
+            {activeTab === "feedback" && (
               <div>
                 {feedbackSubmitted ? (
                   <div className="text-center py-12">
                     <div className="mx-auto flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6 dark:bg-green-900/20">
-                      <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-10 h-10 text-green-600 dark:text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
-                    <h2 className={`text-3xl font-bold mb-3 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
-                    }`}>Thank You!</h2>
-                    <p className={`text-lg mb-8 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                    }`}>
-                      Your feedback has been submitted successfully. We appreciate your input!
+                    <h2
+                      className={`text-3xl font-bold mb-3 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      Thank You!
+                    </h2>
+                    <p
+                      className={`text-lg mb-8 ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      Your feedback has been submitted successfully. We
+                      appreciate your input!
                     </p>
                     <button
                       onClick={() => setFeedbackSubmitted(false)}
                       className={`${buttonClasses.primary} ${
-                        theme === 'dark'
-                          ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                          : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400'
+                        theme === "dark"
+                          ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                          : "bg-blue-500 hover:bg-blue-600 focus:ring-blue-400"
                       } text-white`}
                     >
                       Submit More Feedback
@@ -304,9 +510,12 @@ export default function FeedbackForm() {
                   <form onSubmit={handleFeedbackSubmit} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="name" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="name"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -321,9 +530,12 @@ export default function FeedbackForm() {
                       </div>
 
                       <div>
-                        <label htmlFor="email" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="email"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Email <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -339,9 +551,12 @@ export default function FeedbackForm() {
                     </div>
 
                     <div>
-                      <label htmlFor="company" className={`block text-sm font-semibold mb-2 ${
-                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                      }`}>
+                      <label
+                        htmlFor="company"
+                        className={`block text-sm font-semibold mb-2 ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-700"
+                        }`}
+                      >
                         Company (optional)
                       </label>
                       <input
@@ -355,9 +570,11 @@ export default function FeedbackForm() {
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-semibold mb-3 ${
-                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                      }`}>
+                      <label
+                        className={`block text-sm font-semibold mb-3 ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-700"
+                        }`}
+                      >
                         Rating <span className="text-red-500">*</span>
                       </label>
                       <StarRating
@@ -369,9 +586,12 @@ export default function FeedbackForm() {
                     </div>
 
                     <div>
-                      <label htmlFor="message" className={`block text-sm font-semibold mb-2 ${
-                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                      }`}>
+                      <label
+                        htmlFor="message"
+                        className={`block text-sm font-semibold mb-2 ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-700"
+                        }`}
+                      >
                         Feedback Message <span className="text-red-500">*</span>
                       </label>
                       <textarea
@@ -385,25 +605,66 @@ export default function FeedbackForm() {
                       />
                     </div>
 
+                    {/* Error Display for Feedback */}
+                    {feedbackError && (
+                      <div
+                        className={`p-4 rounded-lg border ${
+                          theme === "dark"
+                            ? "bg-red-900/20 border-red-700 text-red-200"
+                            : "bg-red-50 border-red-200 text-red-700"
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {feedbackError}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex gap-4 pt-6">
                       <button
                         type="submit"
                         disabled={isSubmittingFeedback || rating === 0}
                         className={`flex-1 ${buttonClasses.primary} ${
                           isSubmittingFeedback || rating === 0
-                            ? theme === 'dark'
-                              ? 'bg-blue-500 cursor-not-allowed'
-                              : 'bg-blue-400 cursor-not-allowed'
-                            : theme === 'dark'
-                            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                            : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400'
+                            ? theme === "dark"
+                              ? "bg-blue-500 cursor-not-allowed"
+                              : "bg-blue-400 cursor-not-allowed"
+                            : theme === "dark"
+                            ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                            : "bg-blue-500 hover:bg-blue-600 focus:ring-blue-400"
                         } text-white`}
                       >
                         {isSubmittingFeedback ? (
                           <span className="flex items-center justify-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <svg
+                              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
                             </svg>
                             Submitting...
                           </span>
@@ -425,29 +686,46 @@ export default function FeedbackForm() {
             )}
 
             {/* Complaint Form */}
-            {activeTab === 'complaint' && (
+            {activeTab === "complaint" && (
               <div>
                 {complaintSubmitted ? (
                   <div className="text-center py-12">
                     <div className="mx-auto flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6 dark:bg-green-900/20">
-                      <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-10 h-10 text-green-600 dark:text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
-                    <h2 className={`text-3xl font-bold mb-3 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
-                    }`}>Complaint Received!</h2>
-                    <p className={`text-lg mb-8 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                    }`}>
-                      We take your concerns seriously. Our team will contact you within 24 hours.
+                    <h2
+                      className={`text-3xl font-bold mb-3 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      Complaint Received!
+                    </h2>
+                    <p
+                      className={`text-lg mb-8 ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      We take your concerns seriously. Our team will contact you
+                      within 24 hours.
                     </p>
                     <button
                       onClick={() => setComplaintSubmitted(false)}
                       className={`${buttonClasses.primary} ${
-                        theme === 'dark'
-                          ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                          : 'bg-red-500 hover:bg-red-600 focus:ring-red-400'
+                        theme === "dark"
+                          ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+                          : "bg-red-500 hover:bg-red-600 focus:ring-red-400"
                       } text-white`}
                     >
                       File Another Complaint
@@ -457,9 +735,12 @@ export default function FeedbackForm() {
                   <form onSubmit={handleComplaintSubmit} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="complaint-name" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="complaint-name"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -474,9 +755,12 @@ export default function FeedbackForm() {
                       </div>
 
                       <div>
-                        <label htmlFor="complaint-email" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="complaint-email"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Email <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -493,32 +777,20 @@ export default function FeedbackForm() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="company" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="company"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Company
                         </label>
                         <input
                           type="text"
                           id="company"
                           name="company"
+                          required
                           value={complaintData.company}
-                          className={inputClasses}
-                          onChange={handleComplaintChange}
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="orderNumber" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
-                          Order Number
-                        </label>
-                        <input
-                          type="text"
-                          id="orderNumber"
-                          name="orderNumber"
-                          value={complaintData.orderNumber}
                           className={inputClasses}
                           onChange={handleComplaintChange}
                         />
@@ -527,9 +799,12 @@ export default function FeedbackForm() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="complaintType" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="complaintType"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Complaint Type <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -541,16 +816,21 @@ export default function FeedbackForm() {
                           onChange={handleComplaintChange}
                         >
                           <option value="">Select a category</option>
-                          {complaintTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
+                          {complaintTypes.map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
                           ))}
                         </select>
                       </div>
 
                       <div>
-                        <label htmlFor="urgency" className={`block text-sm font-semibold mb-2 ${
-                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                        }`}>
+                        <label
+                          htmlFor="urgency"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
                           Urgency Level <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -561,7 +841,7 @@ export default function FeedbackForm() {
                           className={inputClasses}
                           onChange={handleComplaintChange}
                         >
-                          {urgencyLevels.map(level => (
+                          {urgencyLevels.map((level) => (
                             <option key={level.value} value={level.value}>
                               {level.label} - {level.description}
                             </option>
@@ -571,9 +851,12 @@ export default function FeedbackForm() {
                     </div>
 
                     <div>
-                      <label htmlFor="subject" className={`block text-sm font-semibold mb-2 ${
-                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                      }`}>
+                      <label
+                        htmlFor="subject"
+                        className={`block text-sm font-semibold mb-2 ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-700"
+                        }`}
+                      >
                         Subject <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -588,10 +871,14 @@ export default function FeedbackForm() {
                     </div>
 
                     <div>
-                      <label htmlFor="description" className={`block text-sm font-semibold mb-2 ${
-                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                      }`}>
-                        Detailed Description <span className="text-red-500">*</span>
+                      <label
+                        htmlFor="description"
+                        className={`block text-sm font-semibold mb-2 ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-700"
+                        }`}
+                      >
+                        Detailed Description{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         id="description"
@@ -604,25 +891,109 @@ export default function FeedbackForm() {
                       />
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          htmlFor="desiredResolution"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
+                          Desired Resolution
+                        </label>
+                        <textarea
+                          id="desiredResolution"
+                          name="desiredResolution"
+                          rows={3}
+                          value={complaintData.desiredResolution}
+                          className={`${inputClasses} resize-none`}
+                          onChange={handleComplaintChange}
+                          placeholder="What would you like us to do to resolve this issue?"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="contactPreference"
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-700"
+                          }`}
+                        >
+                          Preferred Contact Method
+                        </label>
+                        <select
+                          id="contactPreference"
+                          name="contactPreference"
+                          value={complaintData.contactPreference}
+                          className={inputClasses}
+                          onChange={handleComplaintChange}
+                        >
+                          <option value="email">Email</option>
+                          <option value="phone">Phone</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Error Display for Complaint */}
+                    {complaintError && (
+                      <div
+                        className={`p-4 rounded-lg border ${
+                          theme === "dark"
+                            ? "bg-red-900/20 border-red-700 text-red-200"
+                            : "bg-red-50 border-red-200 text-red-700"
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {complaintError}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex gap-4 pt-6">
                       <button
                         type="submit"
                         disabled={isSubmittingComplaint}
                         className={`flex-1 ${buttonClasses.primary} ${
                           isSubmittingComplaint
-                            ? theme === 'dark'
-                              ? 'bg-red-500 cursor-not-allowed'
-                              : 'bg-red-400 cursor-not-allowed'
-                            : theme === 'dark'
-                            ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                            : 'bg-red-500 hover:bg-red-600 focus:ring-red-400'
+                            ? theme === "dark"
+                              ? "bg-red-500 cursor-not-allowed"
+                              : "bg-red-400 cursor-not-allowed"
+                            : theme === "dark"
+                            ? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+                            : "bg-red-500 hover:bg-red-600 focus:ring-red-400"
                         } text-white`}
                       >
                         {isSubmittingComplaint ? (
                           <span className="flex items-center justify-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <svg
+                              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
                             </svg>
                             Submitting...
                           </span>

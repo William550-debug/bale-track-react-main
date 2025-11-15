@@ -5,8 +5,8 @@ import { protect } from '../middleware/auth.js';
 
 const feedbackRouter = express.Router();
 
-feedbackRouter.post('/submit-feedback', protect, submitFeedback);
-feedbackRouter.post('/submit-complaint', protect, submitComplaint);
+feedbackRouter.post('/submit-feedback',  submitFeedback);
+feedbackRouter.post('/submit-complaint', submitComplaint);
 feedbackRouter.get('/all-feedback', protect, fetchAllFeedback);
 feedbackRouter.get('/all-complaints', protect, fetchAllComplaints);
 
